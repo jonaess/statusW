@@ -86,13 +86,16 @@ def delta_time():
 	for i in range(len(x)):
 		y[i]-=x[i]
 	return y
+def get_cpu_time():
+	with open('/proc/stat', 'r') as stat_file:
+		time_list = stat_file.readline().split()[1:]
+	time_list = list(map(int, time_list))
+	return sum(time_list), time_list[3]
 def get_cpu():
-	t = delta_time()
-	st = sum(t)
-	if st == 0:
-		st = 1
-	result = 100-(t[len(t)-1]*100.00/st)
-	return round(result)
+	old_total, old_idle = get_cpu_time()
+	time.sleep(INTERVAL)
+	total, idle = get_cpu_time()
+	return round(100 - float(idle - old_idle) / (total - old_total) * 100.00, 1)
 
 class Traffic:
 	def __init__(self):
@@ -157,12 +160,14 @@ if __name__ == '__main__':
 	while 1:
 		try:
 			print("Connecting...")
-			s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-			s.connect((SERVER, PORT))
-			data = s.recv(1024)
+			# s = socket.socket(socket.AF_INET, socket.SOCK_STREAM.encode())
+			s = socket.create_connection((SERVER, PORT))
+			# s.connect((SERVER, PORT))
+			data = s.recv(1024).decode()
+
 			if data.find("Authentication required") > -1:
-				s.send(USER + ':' + PASSWORD + '\n')
-				data = s.recv(1024)
+				s.send((USER + ':' + PASSWORD + '\n').encode('utf-8'))
+				data = s.recv(1024).decode()
 				if data.find("Authentication successful") < 0:
 					print(data)
 					raise socket.error
@@ -171,7 +176,7 @@ if __name__ == '__main__':
 				raise socket.error
 
 			print(data)
-			data = s.recv(1024)
+			data = s.recv(1024).decode()
 			print(data)
 
 			timer = 0
@@ -216,7 +221,7 @@ if __name__ == '__main__':
 				array['network_in'] = NET_IN
 				array['network_out'] = NET_OUT
 
-				s.send("update " + json.dumps(array) + "\n")
+				s.send(("update " + json.dumps(array) + "\n").encode('utf-8'))
 		except KeyboardInterrupt:
 			raise
 		except socket.error:
