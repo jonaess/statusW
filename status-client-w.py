@@ -224,8 +224,8 @@ if __name__ == '__main__':
 				s.send(("update " + json.dumps(array) + "\n").encode('utf-8'))
 		except KeyboardInterrupt:
 			raise
-		except socket.error:
-			print("Disconnected...")
+		except socket.error as e:
+			print("Disconnected... ", e)
 			# keep on trying after a disconnect
 			s.close()
 			time.sleep(3)
